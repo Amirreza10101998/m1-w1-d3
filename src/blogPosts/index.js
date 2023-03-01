@@ -89,13 +89,36 @@ router.post("/", async (req,res,next) => {
 // 4. edit blog posts
 router.put("/:id", async (req,res,next) => {
     try {
+        const fileAsBuffer = fs.readFileSync(blogPostsFilePath);
+        const fileAsString = fileAsBuffer.toString();
+        let fileAsJSONArray = JSON.parse(fileAsString);
+
+        const blogPostIndex = fileAsJSONArray.findIndex(
+            (blogPost) => blogPost.id === req.params.id
+        );
+        if (!blogPost == -1) {
+            res
+            .status(404)
+            .send({ message: `blogPost with ${req.params.id} is not found!` })
+        }
+
+        const previousBlogPostData = fileAsJSONArray[blogPostIndex];
+
+        const changedBlogPost = {
+            ...previousBlogPostData,
+            ...req.body,
+            updatedAt: new Date(),
+            id: req.params.id
+        }
+
+        fileAsJSONArray[blogPostIndex] = changedBlogPost
+
+        fs.writeFileSync(blogPostsFilePath, JSON.stringify(fileAsJSONArray));
+        res.send(changedBlogPost);
         
     } catch (error) {
-        
+        res.send(500).send({message: error.message})   
     }
-})
-
-
-
+});
 
 export default router;

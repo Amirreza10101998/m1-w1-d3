@@ -13,7 +13,7 @@ server.use(express.json());
 
 server.use("/blogPosts", router);
 
-console.log(listEndpoints(server));
+console.table(listEndpoints(server));
 
 server.listen(port, () => console.log(`server running on port: ${port}`))
 
