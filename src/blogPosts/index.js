@@ -22,7 +22,7 @@ router.get("/", async (req, res, next) => {
         res.send(fileAsJSON)
     
     } catch (error) {
-        res.send(500).send({message: error.message})
+        next(error)
     };
 });
 
@@ -82,7 +82,7 @@ router.post("/", async (req,res,next) => {
 
             res.send(blogPost)
         } catch (error) {
-            res.send(500).send({message: error.message})
+            next(error)
         }
 });
 
@@ -96,7 +96,7 @@ router.put("/:id", async (req,res,next) => {
         const blogPostIndex = fileAsJSONArray.findIndex(
             (blogPost) => blogPost.id === req.params.id
         );
-        if (!blogPost == -1) {
+        if (blogPostIndex === -1) {
             res
             .status(404)
             .send({ message: `blogPost with ${req.params.id} is not found!` })
@@ -117,8 +117,10 @@ router.put("/:id", async (req,res,next) => {
         res.send(changedBlogPost);
         
     } catch (error) {
-        res.send(500).send({message: error.message})   
+        next(error)   
     }
 });
+
+// 5. delete  
 
 export default router;
