@@ -4,6 +4,9 @@ import uniqid from "uniqid";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 
+/*----------Validation----------*/
+import { checkBlogPostSchema, checkValidationResult } from "./validation.js";
+
 const _filename = fileURLToPath(import.meta.url);
 const _dirname = dirname(_filename);
 const blogPostsFilePath = path.join(_dirname, "blogPosts.json")
@@ -12,7 +15,7 @@ const blogPostsFilePath = path.join(_dirname, "blogPosts.json")
 const router = express.Router();
 
 // 1. Get blog posts
-router.get("/", async (req, res, next) => {
+router.get("/", (req, res, next) => {
     try {
 
         const fileAsBuffer = fs.readFileSync(blogPostsFilePath);
@@ -22,13 +25,13 @@ router.get("/", async (req, res, next) => {
         res.send(fileAsJSON)
     
     } catch (error) {
-        next(error)
+        res.send(500).send({message: error.message})
     };
 });
 
 
 // 2. Get single blog posts
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", (req, res, next) => {
     try {
         const fileAsBuffer = fs.readFileSync(blogPostsFilePath);
         const fileAsString = fileAsBuffer.toString();  
@@ -51,28 +54,16 @@ router.get("/:id", async (req, res, next) => {
 });
 
 // 3. create blog posts
-router.post("/", async (req,res,next) => {
+router.post("/", checkBlogPostSchema, checkValidationResult,  async (req,res,next) => {
     try {
-        const { category, title, cover, name,} = req.body
         
         const blogPost = {
             id:uniqid(),
-            category,
-            title,
-            cover,
-            readTime: {
-                value: 2,
-                unit: "minute"
-            },
-            author: {
-                name,
-                avatar: `https://ui-avatars.com/api/?name=${name}`},
-                
-                content:"HTML",
-                createdAt: new Date(),
-                updatedAt:new Date(),
+            ...req.body,
+            createdAt: new Date(),
+            updatedAt:new Date(),
             }
-            
+
             const fileAsBuffer = fs.readFileSync(blogPostsFilePath);
             const fileAsString = fileAsBuffer.toString();
             const fileAsJSONArray = JSON.parse(fileAsString);
@@ -82,12 +73,12 @@ router.post("/", async (req,res,next) => {
 
             res.send(blogPost)
         } catch (error) {
-            next(error)
+            res.send(500).send({message: error.message})
         }
 });
 
 // 4. edit blog posts
-router.put("/:id", async (req,res,next) => {
+router.put("/:id", (req,res,next) => {
     try {
         const fileAsBuffer = fs.readFileSync(blogPostsFilePath);
         const fileAsString = fileAsBuffer.toString();
@@ -117,10 +108,33 @@ router.put("/:id", async (req,res,next) => {
         res.send(changedBlogPost);
         
     } catch (error) {
-        next(error)   
+        res.send(500).send({message: error.message})   
     }
 });
 
-// 5. delete  
+// 5. delete blog post
+router.delete("/:id", (req, res, next) => {
+    try {
+        const fileAsBuffer = fs.readFileSync(blogPostsFilePath);
+        const fileAsString = fileAsBuffer.toString();
+        let fileAsJSONArray = JSON.parse(fileAsString);
+
+        const blogPost = fileAsJSONArray.find((blogPost) => blogPost.id === req.params.id);
+        if(!blogPost) {
+            res
+              .status(400)
+              .send({message: `blog post with ${req.params.id} is not found!`})
+        }
+
+        fileAsJSONArray = fileAsJSONArray.filter(
+            (blogPost) => blogPost.id !== req.params.id
+        );
+        fs.writeFileSync(blogPostsFilePath, JSON.stringify(fileAsJSONArray));
+        res.status(204).send();
+        
+    } catch (error) {
+        res.send(500).send({message: error.message}) 
+    }
+});  
 
 export default router;
