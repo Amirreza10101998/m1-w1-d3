@@ -7,23 +7,37 @@ import { fileURLToPath } from "url";
 /*----------Validation----------*/
 import { checkBlogPostSchema, checkValidationResult } from "./validation.js";
 
-const _filename = fileURLToPath(import.meta.url);
-const _dirname = dirname(_filename);
-const blogPostsFilePath = path.join(_dirname, "blogPosts.json")
+const getBlogPostFilePath = () => {
+    const _filename = fileURLToPath(import.meta.url);
+    const _dirname = dirname(_filename);
+    const blogPostsFilePath = path.join(_dirname, "blogPosts.json");
+    
+    return blogPostsFilePath;
+}
 
+const getBlogPosts = () => {
+    const blogPostsFilePath = getBlogPostFilePath();
+    const fileAsBuffer = fs.readFileSync(blogPostsFilePath);
+    const fileAsString = fileAsBuffer.toString();
+    const fileAsJSON = JSON.parse(fileAsString);
+
+    return fileAsJSON;
+}
+
+const getBlogPostById = (id) => {
+    const blogPosts = getBlogPosts();
+    const blogPost = blogPosts.find((blogPost) => blogPost.id === id);
+    
+    return blogPost;
+};
 
 const router = express.Router();
 
 // 1. Get blog posts
 router.get("/", (req, res, next) => {
     try {
-
-        const fileAsBuffer = fs.readFileSync(blogPostsFilePath);
-        const fileAsString = fileAsBuffer.toString();
-        const fileAsJSON = JSON.parse(fileAsString);
-
+        const fileAsJSON = getBlogPosts()
         res.send(fileAsJSON)
-    
     } catch (error) {
         res.send(500).send({message: error.message})
     };
@@ -33,28 +47,23 @@ router.get("/", (req, res, next) => {
 // 2. Get single blog posts
 router.get("/:id", (req, res, next) => {
     try {
-        const fileAsBuffer = fs.readFileSync(blogPostsFilePath);
-        const fileAsString = fileAsBuffer.toString();  
-        const fileAsJSONArray = JSON.parse(fileAsString);
-
-        const blogPost = fileAsJSONArray.find(
-            (blogPost) => blogPost.id === req.params.id
-            );
+        
+        const blogPost = getBlogPostById(req.params.id);
+        
         if (!blogPost) {
-            res
+          res
             .status(404)
-            .send({ message: `blogPost with ${req.params.id} is not found!` })
+            .send({ message: `Blog post with id ${req.params.id} not found` });
+          return;
         }
         res.send(blogPost);
-
-    } catch (error) {
-        res.send(500).send({messge: error.messge})
-    }
-    
+      } catch (error) {
+        res.status(500).send({ message: error.message });
+      }
 });
 
 // 3. create blog posts
-router.post("/", checkBlogPostSchema, checkValidationResult,  async (req,res,next) => {
+router.post("/", checkBlogPostSchema, checkValidationResult, (req,res,next) => {
     try {
         
         const blogPost = {
